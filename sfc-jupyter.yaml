@@ -1,0 +1,56 @@
+# jupyter.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyter
+  labels:
+    app: jupyter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jupyter
+  template:
+    metadata:
+      labels:
+        app: jupyter
+    spec:
+      containers:
+      - name: jupyter
+        image: quay.io/jupyter/pytorch-notebook:cuda12-python-3.11.8
+        ports:
+        - containerPort: 8888
+        command: ["start-notebook.sh"]
+        args: ["--NotebookApp.token=''", "--NotebookApp.password=''"]
+        resources:
+          requests:
+            nvidia.com/gpu: 8
+            nvidia.com/hostdev: 8
+            memory: "512Gi"
+            cpu: "32"
+          limits:
+            nvidia.com/gpu: 8
+            nvidia.com/hostdev: 8
+            memory: "512Gi"
+            cpu: "32"
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: "64Gi" 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jupyter-service
+spec:
+  selector:
+    app: jupyter
+  ports:
+    - protocol: TCP
+      port: 8888
+      targetPort: 8888
+  type: ClusterIP
